@@ -1,4 +1,5 @@
 import sys
+import configparser
 import translators
 from tkinter import (
     END, Tk, StringVar, Label, Entry, Button, Frame, filedialog, messagebox, ttk, Misc, Text, font, PhotoImage,
@@ -235,8 +236,38 @@ class PyTranslate(Tk):
                 )
 
 if __name__ == "__main__":
-    app = PyTranslate()
-    if "--not-on-top" not in sys.argv:
+    config = configparser.ConfigParser()
+    config.read(".pytranslate.ini")
+
+    try:
+        not_on_top = config["DEFAULT"]["NotOnTop"]
+    except KeyError:
+        not_on_top = False
+    finally:
+        if "--not-on-top" in sys.argv:
+            not_on_top = True
+    try:
+        lang_from = config["DEFAULT"]["LangFrom"]
+        print(lang_from)
+    except KeyError as e:
+        print(e)
+        lang_from = "pl" 
+    try:
+        lang_to = config["DEFAULT"]["LangTo"]
+        print(lang_to)
+    except KeyError:
+        lang_to = "de"
+    try:
+        theme = config["DEFAULT"]["Theme"]
+    except KeyError:
+        theme = "black"
+    # start app
+    app = PyTranslate(
+            lang_from=lang_from,
+            lang_to=lang_to,
+            theme=theme
+            )
+    if not not_on_top:
         app.attributes("-topmost", True)
     app.mainloop()
 

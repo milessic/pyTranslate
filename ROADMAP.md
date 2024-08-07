@@ -1,0 +1,2 @@
+- [ ] Create a search history
+- [ ] Create custom topbar
