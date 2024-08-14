@@ -2,7 +2,7 @@ import sys
 import configparser
 import translators
 from tkinter import (
-    END, Tk, StringVar, Label, Entry, Button, Frame, filedialog, messagebox, ttk, Misc, Text, font, PhotoImage,
+    END, Tk, StringVar, Label, Entry, Button, Frame, Toplevel, filedialog, messagebox, ttk, Misc, Text, font, PhotoImage,
         )
 
 
@@ -95,6 +95,9 @@ class Styles:
 class PyTranslate(Tk):
     def __init__(self, theme:str | None = None, lang_from:str="pl", lang_to:str="de"):
         super().__init__()
+        self.history_file = ".history"
+        self.click_x = 0
+        self.click_y = 0
         self.ts = translators
         self.pixel = PhotoImage()
         self.helv13 = font.Font(family='Helvetica', size=13) 
@@ -107,32 +110,65 @@ class PyTranslate(Tk):
         self.lang_from = lang_from
         self.lang_to = lang_to
         self.name = "pyTranslate"
+        self.root = self#Toplevel(self)
+        self.w = 367
+        self.h = 100
+        self.ws = int(self.winfo_screenwidth() - self.w*1.5)
+        self.hs = int(self.winfo_screenheight()/2 - self.h*3)
+        self.root.geometry(f"{self.w}x{self.h}+{self.ws}+{self.hs}")
+        #self.root.overrideredirect(True)
+
+
         self.initUi()
+        self.update()
+        #self.wm_attributes('-type', 'splash')
+        #self.wm_attributes('-fullscreen', 'True')
+
+
 
     def initUi(self):
         self.title(self.name)
         # setup top
-        self.lang_from_entry = self.myEntry(self, width=10, font=self.helv13)
-        self.switch_lang_btn = self.myButton(self, "",command=self._switch_lang, font=self.nerd5)
-        self.lang_to_entry = self.myEntry(self, width=10, font=self.helv13)
-        self.go_btn = self.myButton(self, "Search!", command=self._search, font=self.nerd5)
-        self.lang_from_entry.grid(row=1, column=0)
+        self.lang_from_entry = self.myEntry(self.root, width=10, font=self.helv13, bg=self.s.bg)
+        self.switch_lang_btn = self.myButton(self.root, "",command=self._switch_lang, font=self.nerd5)
+        self.lang_to_entry = self.myEntry(self.root, width=10, font=self.helv13)
+        self.go_btn = self.myButton(self.root, "Search!", command=self._search, font=self.nerd5)
+        self.exit_btn = self.myButton(self.root, "", self._close, width=3, font=self.nerd5)
+        self.exit_btn.configure(borderwidth=0, highlightcolor=self.s.bg, highlightbackground=self.s.bg)
+        self.lang_from_entry.grid(row=1, column=0, pady=5)
         self.switch_lang_btn.grid(row=1, column=1)
         self.lang_to_entry.grid(row=1, column=3)
         self.go_btn.grid(row=1, column=2)
+        self.exit_btn.place(x=330, y=3)
         self._insert_langs()
         # setup bottom
-        self.input_entry = self.myText(self, width=20, font=self.helv13)
+        self.input_entry = self.myText(self.root, width=20, font=self.helv13)
         self.input_entry.bind("<Return>", self._input_event)
         self.input_entry.bind("<Control-BackSpace>", self._input_clear)
         self.bind("<Control-r>", self._switch_input_output_event)
         self.bind("<Control-R>", self._switch_input_output_event_R)
         self.bind("<Control-q>", self._exit_event)
+        self.bind("<B1-Motion>", self._move)
+        self.bind("<Button-1>", self._click)
         #self.input_entry.bind("<Control-a>",  self._select_a_input)
-        self.output_entry = self.myText(self, width=20, font=self.helv13)
+        self.output_entry = self.myText(self.root, width=20, font=self.helv13)
         self.input_entry.grid(row=2, column=0, columnspan=2)
         self.output_entry.grid(row=2, column=2, columnspan=2)
         self.input_entry.focus()
+
+    def _focus_input_entry(self, event):
+        self.input_entry.focus()
+
+    def _close(self, event=None):
+        exit()
+
+    def _click(self, event):
+        self.click_x, self.click_y = event.x, event.y
+
+    def _move(self, event):
+        x, y = self.winfo_pointerxy()
+        x_rel, y_rel = x-self.click_x, y-self.click_y
+        self.geometry(f"+{x_rel}+{y_rel}")
 
     def _exit_event(self, event):
         self.destroy()
@@ -171,6 +207,7 @@ class PyTranslate(Tk):
             messagebox.showerror(title=self.name + f": {type(e).__name__}", message=str(e))
         self.output_entry.delete("1.0", END)
         self.output_entry.insert("1.0",translation)
+        self._save_to_history()
 
     def _switch_lang(self):
         # clear fields
@@ -196,6 +233,10 @@ class PyTranslate(Tk):
         # insert
         self.input_entry.insert("1.0", txt_out)
         self.output_entry.insert("1.0", txt_in)
+    
+    def _save_to_history(self):
+        with open(self.history_file,"a") as f:
+            f.write(f"""{self.lang_from},{self.lang_to},{self.input_entry.get("1.0", END)},{self.output_entry.get("1.0", END)}""")
 
     def myText(self, master:Misc, height=4, **kwargs) -> Text:
         return Text(
@@ -208,12 +249,14 @@ class PyTranslate(Tk):
             border=0,
             **kwargs
                 )
-    def myEntry(self, master:Misc,**kwargs) -> Entry:
+    def myEntry(self, master:Misc,fg:str|None=None, bg:str|None=None,**kwargs) -> Entry:
+        fg = fg if fg is not None else self.s.txt_fg
+        bg = bg if bg is not None else self.s.bg
         return Entry(
             master=master,
-            background=self.s.txt_bg,
-            highlightcolor=self.s.bg,
-            highlightbackground=self.s.bg,
+            background=bg,
+            highlightcolor=bg,
+            highlightbackground=bg,
             fg=self.s.txt_fg,
             border=0,
             **kwargs
@@ -248,7 +291,6 @@ if __name__ == "__main__":
             not_on_top = True
     try:
         lang_from = config["DEFAULT"]["LangFrom"]
-        print(lang_from)
     except KeyError as e:
         print(e)
         lang_from = "pl" 
@@ -261,6 +303,23 @@ if __name__ == "__main__":
         theme = config["DEFAULT"]["Theme"]
     except KeyError:
         theme = "black"
+    langs = []
+    for arg in sys.argv:
+        if arg.startswith("-"):
+            continue
+        if arg.endswith(".py"):
+            continue
+        langs.append(arg)
+
+    if len(langs) == 2:
+        lang_from = langs[0]
+        lang_to = langs[1]
+    elif not len(langs):
+        pass
+    else:
+        raise IndexError(f"Provided langs number have to be exactly 2 but {len(langs)} provided! - {langs}")
+
+
     # start app
     app = PyTranslate(
             lang_from=lang_from,
