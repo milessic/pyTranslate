@@ -289,13 +289,15 @@ if __name__ == "__main__":
             continue
         langs.append(arg)
 
+    langs = langs[-2:]
     if len(langs) == 2:
         lang_from = langs[0]
         lang_to = langs[1]
     elif not len(langs):
         pass
     else:
-        raise IndexError(f"Provided langs number have to be exactly 2 but {len(langs)} provided! - {langs}")
+        pass
+        #raise IndexError(f"Provided langs number have to be exactly 2 but {len(langs)} provided! - {langs}")
 
 
     # start app
