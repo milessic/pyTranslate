@@ -1,160 +1,129 @@
+import json
 import sys
+import os
 import configparser
 import translators
-from tkinter import (
-    END, Tk, StringVar, Label, Entry, Button, Frame, Toplevel, filedialog, messagebox, ttk, Misc, Text, font, PhotoImage,
+from PyQt5.QtWidgets import (
+        QWidget,
+        QApplication,
+        QMainWindow,
+        QSplitter,
+        QLabel,
+        QLineEdit,
+        QPlainTextEdit,
+        QPushButton,
+        QVBoxLayout,
+        QHBoxLayout,
+        QFrame,
+        QMessageBox,
         )
+from PyQt5.QtCore import QLine, Qt, QPoint
 
 
-class BlackTheme:
-    bg = "#000000"
-    highlight = "#1a1a1a"
-    fg = "#ffffff"
-    txt_bg = "#2b2b2b"
-    txt_fg = "#eaeaea"
-    btn_highlight = "#4d4d4d"
-    status_bg = "#151515"
-
-class WhiteTheme:
-    bg = "#ffffff"
-    highlight = "#f2f2f2"
-    fg = "#000000"
-    txt_bg = "#e6e6e6"
-    txt_fg = "#333333"
-    btn_highlight = "#cccccc"
-    status_bg = "#f7f7f7"
-
-class BlueTheme:
-    bg = "#007acc"
-    highlight = "#005999"
-    fg = "#ffffff"
-    txt_bg = "#cce7ff"
-    txt_fg = "#003366"
-    btn_highlight = "#66b2ff"
-    status_bg = "#004080"
-
-class RedTheme:
-    bg = "#b30000"
-    highlight = "#800000"
-    fg = "#ffffff"
-    txt_bg = "#ffcccc"
-    txt_fg = "#330000"
-    btn_highlight = "#ff6666"
-    status_bg = "#660000"
-
-class DarkBlueTheme:
-    bg = "#22303c"
-    highlight = "#9DB2BF"
-    fg = "#ffffff"
-    txt_bg ="#FFFDFA" 
-    txt_fg ="#15202b" 
-    btn_highlight="#ffffff"
-    status_bg = "#6b6967"
-
-class PastelTheme:
-    bg = "#ffd1dc"
-    highlight = "#ffb3c1"
-    fg = "#4b0082"
-    txt_bg = "#fff0f5"
-    txt_fg = "#800080"
-    btn_highlight = "#ff69b4"
-    status_bg = "#ff80bf"
-
-
-
-selectedStyle = DarkBlueTheme
-class Styles:
-    def __init__(self, theme_name:str):
-        default_theme = BlackTheme
-        match theme_name.lower():
-            case "darkblue":
-                stylesheet = DarkBlueTheme
-            case "lightgray":
-                stylesheet = LightGrayTheme 
-            case "black":
-                stylesheet = BlackTheme
-            case "white":
-                stylesheet = WhiteTheme
-            case "blue":
-                stylesheet = BlueTheme
-            case "red":
-                stylesheet = RedTheme
-            case "pastel":
-                stylesheet = PastelTheme
-            case "none":
-                stylesheet = default_theme
-            case _:
-                print(f"Theme not supported - '{theme_name}'!")
-                stylesheet = default_theme
-        for k,v in stylesheet.__dict__.items():
-            if k.startswith("__"):
-                continue
-            setattr(self, k,v)
-
-
-class PyTranslate(Tk):
-    def __init__(self, theme:str | None = None, lang_from:str="pl", lang_to:str="de"):
+class PyTranslate(QMainWindow):
+    control_pressed = False
+    shift_pressed = False
+    dragging = False
+    drag_position = None
+    history_file_path = f"{os.getenv('HOME')}/.pytranslate.history.json"
+    def __init__(self, theme:str | None = None, lang_from:str="pl", lang_to:str="de", always_on_top:bool=True, start_pos:None|tuple=None, save_history:bool=True):
         super().__init__()
-        self.history_file = ".history"
+        self.save_history = save_history
         self.click_x = 0
         self.click_y = 0
         self.ts = translators
-        self.pixel = PhotoImage()
-        self.helv13 = font.Font(family='Helvetica', size=13) 
-        self.helv5 = font.Font(family='Helvetica', size=5, weight='bold')
-        self.nerd5 = font.Font(family="NerdFont", size=6)
         theme = str(theme)
-        #self.resizable(0, 0) 
-        self.s = Styles(theme_name=theme)
-        self.config(bg=self.s.bg)
         self.lang_from = lang_from
         self.lang_to = lang_to
         self.name = "pyTranslate"
-        self.root = self#Toplevel(self)
-        self.w = 367
+        self.w = 327
         self.h = 100
-        self.ws = int(self.winfo_screenwidth() - self.w*1.5)
-        self.hs = int(self.winfo_screenheight()/2 - self.h*3)
-        self.root.geometry(f"{self.w}x{self.h}+{self.ws}+{self.hs}")
-        #self.root.overrideredirect(True)
+        self.ws = 300 if start_pos is None else start_pos[0]
+        self.hs = 100 if start_pos is None else start_pos[1]
+
+        self.setGeometry(self.ws, self.hs, self.w+self.pos().x(), self.h)
 
 
         self.initUi()
         self.update()
-        #self.wm_attributes('-type', 'splash')
-        #self.wm_attributes('-fullscreen', 'True')
-
-
+        if always_on_top:
+            self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        else:
+            self.setWindowFlags(Qt.FramelessWindowHint)
+        self.input_entry.setFocus()
+        self.show()
 
     def initUi(self):
-        self.title(self.name)
+        self.setWindowTitle(self.name)
+        self.main_widget = QWidget(self)
+        self.setCentralWidget(self.main_widget)
+        self.main_layout = QVBoxLayout(self.main_widget)
         # setup top
-        self.lang_from_entry = self.myEntry(self.root, width=10, font=self.helv13, bg=self.s.bg)
-        self.switch_lang_btn = self.myButton(self.root, "",command=self._switch_lang, font=self.nerd5)
-        self.lang_to_entry = self.myEntry(self.root, width=10, font=self.helv13)
-        self.go_btn = self.myButton(self.root, "Search!", command=self._search, font=self.nerd5)
-        self.exit_btn = self.myButton(self.root, "", self._close, width=3, font=self.nerd5)
-        self.exit_btn.configure(borderwidth=0, highlightcolor=self.s.bg, highlightbackground=self.s.bg)
-        self.lang_from_entry.grid(row=1, column=0, pady=5)
-        self.switch_lang_btn.grid(row=1, column=1)
-        self.lang_to_entry.grid(row=1, column=3)
-        self.go_btn.grid(row=1, column=2)
-        self.exit_btn.place(x=330, y=3)
+        self.top_layout = QHBoxLayout()
+        self.lang_from_entry = self.myQLineEdit(self, width=10)
+        self.switch_lang_btn = self.myQPushButton(self, "",command=self._switch_lang)
+        self.lang_to_entry = self.myQLineEdit(self, width=10)
+        self.go_btn = self.myQPushButton(self, "Go!", command=self._search)
+        self.exit_btn = self.myQPushButton(self, "", self._close)
+        self.top_layout.addWidget(self.lang_from_entry)
+        self.top_layout.addWidget(self.switch_lang_btn)
+        self.top_layout.addWidget(self.go_btn)
+        self.top_layout.addWidget(self.lang_to_entry)
+        self.top_layout.addWidget(self.exit_btn)
+        self.main_layout.addLayout(self.top_layout)
         self._insert_langs()
         # setup bottom
-        self.input_entry = self.myText(self.root, width=20, font=self.helv13)
-        self.input_entry.bind("<Return>", self._input_event)
-        self.input_entry.bind("<Control-BackSpace>", self._input_clear)
-        self.bind("<Control-r>", self._switch_input_output_event)
-        self.bind("<Control-R>", self._switch_input_output_event_R)
-        self.bind("<Control-q>", self._exit_event)
-        self.bind("<B1-Motion>", self._move)
-        self.bind("<Button-1>", self._click)
-        #self.input_entry.bind("<Control-a>",  self._select_a_input)
-        self.output_entry = self.myText(self.root, width=20, font=self.helv13)
-        self.input_entry.grid(row=2, column=0, columnspan=2)
-        self.output_entry.grid(row=2, column=2, columnspan=2)
-        self.input_entry.focus()
+        self.bottom_layout = QHBoxLayout()
+        self.entries_divider = QSplitter(Qt.Horizontal, self)
+        self.input_entry = self.myQPlainTextEdit(self, width=20)
+        self.output_entry = self.myQPlainTextEdit(self, width=20)
+        self.entries_divider.addWidget(self.input_entry)
+        self.entries_divider.addWidget(self.output_entry)
+        self.bottom_layout.addWidget(self.entries_divider)
+        self.main_layout.addLayout(self.bottom_layout)
+
+    # events
+    def keyReleaseEvent(self, e):
+        if e.key() == Qt.Key_Control:
+            self.control_pressed = False
+        if e.key() == Qt.Key_Shift:
+            self.shift_pressed = False
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Control:
+            self.control_pressed = True
+        if e.key() == Qt.Key_Shift:
+            self.shift_pressed = True
+
+        if self.control_pressed:
+            if e.key() == Qt.Key_R:
+                if self.shift_pressed:
+                    self._switch_input_output_event_R(e)
+                else:
+                    self._switch_input_output_event(e)
+            if e.key() == Qt.Key_Q:
+                self._exit()
+        if e.key() == Qt.Key_Return:
+            self._search()
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.dragging = True
+            self.drag_position = e.globalPos() - self.frameGeometry().topLeft()
+            e.accept()
+
+    def mouseMoveEvent(self, e):
+        if self.dragging:
+            self.move(e.globalPos() - self.drag_position)
+            e.accept()
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.dragging = False
+            e.accept()
+
+
+    # methods
 
     def _focus_input_entry(self, event):
         self.input_entry.focus()
@@ -170,8 +139,8 @@ class PyTranslate(Tk):
         x_rel, y_rel = x-self.click_x, y-self.click_y
         self.geometry(f"+{x_rel}+{y_rel}")
 
-    def _exit_event(self, event):
-        self.destroy()
+    def _exit(self):
+        exit()
 
     def _switch_input_output_event(self, event):
         self._switch_lang()
@@ -182,31 +151,20 @@ class PyTranslate(Tk):
     def _input_event(self, event):
         self._search()
 
-    def _select_a_input(self, event):
-        # or more universal
-        # select text after 50ms
-        self.after(50, self._select_all, self.input_entry)
-
-    def _select_all(self, widget):
-        widget.select_range("1.0", END)
-        widget.icursor(END)
-
-    def _input_clear(self, event):
-        self.input_entry.delete("1.0", END)
 
     def _search(self):
-        self.lang_from = self.lang_from_entry.get()
-        self.lang_to = self.lang_to_entry.get()
+        self.lang_from = self.lang_from_entry.text()
+        self.lang_to = self.lang_to_entry.text()
         if not self.lang_from or not self.lang_to:
             messagebox.showerror(title=self.name, message="Both language from and language to have to be filled!")
             return
-        source_text = self.input_entry.get("1.0", END)
+        source_text = self.input_entry.toPlainText()
         try:
             translation = self.ts.translate_text(query_text=source_text, from_language=self.lang_from, to_language=self.lang_to)
         except Exception as e:
             messagebox.showerror(title=self.name + f": {type(e).__name__}", message=str(e))
-        self.output_entry.delete("1.0", END)
-        self.output_entry.insert("1.0",translation)
+        self.output_entry.clear()
+        self.output_entry.insertPlainText(translation)
         self._save_to_history()
 
     def _switch_lang(self):
@@ -218,72 +176,80 @@ class PyTranslate(Tk):
         self._switch_input_output()
 
     def _insert_langs(self):
-        self.lang_to_entry.delete(0, END)
-        self.lang_from_entry.delete(0,END)
-        self.lang_to_entry.insert(0, self.lang_to)
-        self.lang_from_entry.insert(0, self.lang_from)
+        self.lang_to_entry.clear()
+        self.lang_from_entry.clear()
+        self.lang_to_entry.setText(self.lang_to)
+        self.lang_from_entry.setText(self.lang_from)
 
     def _switch_input_output(self):
         # swap
-        txt_in = self.input_entry.get("1.0", END)
-        txt_out = self.output_entry.get("1.0", END)
+        txt_in = self.input_entry.toPlainText()
+        txt_out = self.output_entry.toPlainText()
         # clear
-        self.input_entry.delete("1.0", END)
-        self.output_entry.delete("1.0", END)
+        self.input_entry.clear()
+        self.output_entry.clear()
         # insert
-        self.input_entry.insert("1.0", txt_out)
-        self.output_entry.insert("1.0", txt_in)
+        self.input_entry.insertPlainText(txt_out)
+        self.output_entry.insertPlainText(txt_in)
     
     def _save_to_history(self):
-        with open(self.history_file,"a") as f:
-            f.write(f"""{self.lang_from},{self.lang_to},{self.input_entry.get("1.0", END)},{self.output_entry.get("1.0", END)}""")
+        if not self.save_history:
+            return
+        try:
+            history_file = json.load(open(self.history_file_path, "r"))
+        except Exception as e:
+            print(e)
+            QMessageBox.critical(self, "Error", "Could not load history file!")
+            history_file = []
+        history_file.append([self.lang_from, self.lang_to, self.input_entry.toPlainText(), self.output_entry.toPlainText()])
+        json.dump(history_file, open(self.history_file_path, "w"), indent=4)
 
-    def myText(self, master:Misc, height=4, **kwargs) -> Text:
-        return Text(
-                master=master,
-            background=self.s.txt_bg,
-            highlightcolor=self.s.bg,
-            highlightbackground=self.s.bg,
-            fg=self.s.txt_fg,
-            height=height,
-            border=0,
-            **kwargs
-                )
-    def myEntry(self, master:Misc,fg:str|None=None, bg:str|None=None,**kwargs) -> Entry:
-        fg = fg if fg is not None else self.s.txt_fg
-        bg = bg if bg is not None else self.s.bg
-        return Entry(
-            master=master,
-            background=bg,
-            highlightcolor=bg,
-            highlightbackground=bg,
-            fg=self.s.txt_fg,
-            border=0,
-            **kwargs
-            )
-    def myButton(self, master, text:str, command, fg=None, bg=None, width=30, height=6, **kwargs) -> Button:
-        return Button(
-                image=self.pixel,
-                master=master,
-                text=text,
-                command=command,
-                compound="center",
-                background=self.s.bg if bg is None else bg,
-                fg=self.s.fg if fg is None else fg,
-                highlightcolor=self.s.btn_highlight,
-                highlightbackground=self.s.btn_highlight,
-                activebackground=self.s.btn_highlight,
-                width=width,
-                height=height,
+    def myQPlainTextEdit(self, parent, height=4, **kwargs) -> QPlainTextEdit:
+        text = QPlainTextEdit(
+                parent=parent,
                 #**kwargs
                 )
+        text.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        text.setStyleSheet(f"""
+        border:none;
+        background: transparent;
+        """)
+        return text
+
+    def myQLineEdit(self, parent,**kwargs) -> QLineEdit:
+        qlineedit= QLineEdit(
+            parent,
+            #**kwargs
+            )
+        qlineedit.setStyleSheet("""
+        border:none;
+        background:transparent;
+        """)
+        return qlineedit
+
+    def myQPushButton(self, parent, text:str, command,width=30, height=30, **kwargs) -> QPushButton:
+        btn = QPushButton(
+                text,
+                parent,
+                #**kwargs
+                )
+        btn.setFixedWidth(width)
+        btn.setFixedHeight(height)
+        btn.clicked.connect(command)
+        btn.setStyleSheet("""
+        border: none;
+        color: palette(window-text);
+        background: transparent;
+        """)
+
+        return btn
 
 if __name__ == "__main__":
     config = configparser.ConfigParser()
-    config.read(".pytranslate.ini")
+    config.read(f"{os.getenv('HOME')}/.pytranslate.ini")
 
     try:
-        not_on_top = config["DEFAULT"]["NotOnTop"]
+        not_on_top = bool(int(config["DEFAULT"]["NotOnTop"]))
     except KeyError:
         not_on_top = False
     finally:
@@ -292,20 +258,32 @@ if __name__ == "__main__":
     try:
         lang_from = config["DEFAULT"]["LangFrom"]
     except KeyError as e:
-        print(e)
         lang_from = "pl" 
     try:
         lang_to = config["DEFAULT"]["LangTo"]
-        print(lang_to)
     except KeyError:
         lang_to = "de"
     try:
         theme = config["DEFAULT"]["Theme"]
     except KeyError:
         theme = "black"
+    try:
+        start_x = int(config["DEFAULT"]["StartX"])
+    except:
+        start_x = 100
+    try:
+        start_y = int(config["DEFAULT"]["StartY"])
+    except:
+        start_y = 100
+    try:
+        save_history= bool(int(config["DEFAULT"]["SaveHistory"]))
+    except:
+        save_history = True
     langs = []
     for arg in sys.argv:
         if arg.startswith("-"):
+            if arg == "--dont-save-history":
+                save_history = False
             continue
         if arg.endswith(".py"):
             continue
@@ -321,12 +299,16 @@ if __name__ == "__main__":
 
 
     # start app
-    app = PyTranslate(
+    app = QApplication(sys.argv)
+    window = PyTranslate(
             lang_from=lang_from,
             lang_to=lang_to,
-            theme=theme
+            theme=theme,
+            always_on_top=not_on_top,
+            start_pos=(start_x, start_y),
+            save_history=save_history,
             )
-    if not not_on_top:
-        app.attributes("-topmost", True)
-    app.mainloop()
+    window.show()
+    sys.exit(app.exec_())
+
 
