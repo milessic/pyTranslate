@@ -129,7 +129,7 @@ class PyTranslate(QMainWindow):
         self.input_entry.focus()
 
     def _close(self, event=None):
-        exit()
+        self._exit()
 
     def _click(self, event):
         self.click_x, self.click_y = event.x, event.y
@@ -140,7 +140,7 @@ class PyTranslate(QMainWindow):
         self.geometry(f"+{x_rel}+{y_rel}")
 
     def _exit(self):
-        exit()
+        sys.exit()
 
     def _switch_input_output_event(self, event):
         self._switch_lang()
