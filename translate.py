@@ -1,8 +1,11 @@
 import json
+from platform import system as platform_system
 import sys
 import os
 import configparser
 import translators
+from src.elements import SettingsController
+from src.config import Config
 from PyQt5.QtWidgets import (
         QWidget,
         QApplication,
@@ -25,28 +28,43 @@ class PyTranslate(QMainWindow):
     shift_pressed = False
     dragging = False
     drag_position = None
-    history_file_path = f"{os.getenv('HOME')}/.pytranslate.history.json"
-    def __init__(self, theme:str | None = None, lang_from:str="pl", lang_to:str="de", always_on_top:bool=True, start_pos:None|tuple=None, save_history:bool=True):
+    def __init__(self, 
+                 app_path:str,
+                 theme:str | None = None, 
+                 lang_from:str | None = None,
+                 lang_to:str | None = None, 
+                 always_on_top:bool | None = None, 
+                 start_pos:None|tuple=None, 
+                 save_history:bool | None = None,
+                 ):
         super().__init__()
-        self.save_history = save_history
+        self.app_path = app_path
+        self.history_file_path = f"{self.app_path}/pytranslate.history.json"
+        self.config = Config(self.app_path)
+        self.icon_topnav_path = None
+        self.icon= None
+        self.save_history = self.config.SaveHistory if save_history is None else save_history
         self.click_x = 0
         self.click_y = 0
         self.ts = translators
         theme = str(theme)
-        self.lang_from = lang_from
-        self.lang_to = lang_to
-        self.name = "pyTranslate"
+        self.lang_from = lang_from if lang_from is not None else self.config.LangFrom
+        self.lang_to = lang_to if lang_to is not None else self.config.LangTo
+        self.app_name = "pyTranslate"
         self.w = 327
         self.h = 100
-        self.ws = 300 if start_pos is None else start_pos[0]
-        self.hs = 100 if start_pos is None else start_pos[1]
+        self.ws = start_pos[0] if start_pos is not None else self.config.StartX
+        self.hs = start_pos[1] if start_pos is not None else self.config.StartY
 
         self.setGeometry(self.ws, self.hs, self.w+self.pos().x(), self.h)
-
-
+        
         self.initUi()
         self.update()
-        if always_on_top:
+        if self.config.AlwaysOnTop:
+            self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        else:
+            self.setWindowFlags(Qt.FramelessWindowHint)
+        if always_on_top is not None and always_on_top:
             self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         else:
             self.setWindowFlags(Qt.FramelessWindowHint)
@@ -54,7 +72,7 @@ class PyTranslate(QMainWindow):
         self.show()
 
     def initUi(self):
-        self.setWindowTitle(self.name)
+        self.setWindowTitle(self.app_name)
         self.main_widget = QWidget(self)
         self.setCentralWidget(self.main_widget)
         self.main_layout = QVBoxLayout(self.main_widget)
@@ -64,11 +82,19 @@ class PyTranslate(QMainWindow):
         self.switch_lang_btn = self.myQPushButton(self, "",command=self._switch_lang)
         self.lang_to_entry = self.myQLineEdit(self, width=10)
         self.go_btn = self.myQPushButton(self, "Go!", command=self._search)
+
+        # settings btn
+        self.settings_btn = self.myQPushButton(self, "", self._open_settings)
+        
+        # exit btn
         self.exit_btn = self.myQPushButton(self, "", self._close)
+        
+        # add widgets to layouts
         self.top_layout.addWidget(self.lang_from_entry)
         self.top_layout.addWidget(self.switch_lang_btn)
         self.top_layout.addWidget(self.go_btn)
         self.top_layout.addWidget(self.lang_to_entry)
+        self.top_layout.addWidget(self.settings_btn)
         self.top_layout.addWidget(self.exit_btn)
         self.main_layout.addLayout(self.top_layout)
         self._insert_langs()
@@ -81,6 +107,7 @@ class PyTranslate(QMainWindow):
         self.entries_divider.addWidget(self.output_entry)
         self.bottom_layout.addWidget(self.entries_divider)
         self.main_layout.addLayout(self.bottom_layout)
+        self.settings_window = SettingsController(self)
 
     # events
     def keyReleaseEvent(self, e):
@@ -128,6 +155,9 @@ class PyTranslate(QMainWindow):
     def _focus_input_entry(self, event):
         self.input_entry.focus()
 
+    def _open_settings(self, event=None):
+        self.settings_window.show()
+
     def _close(self, event=None):
         self._exit()
 
@@ -156,16 +186,22 @@ class PyTranslate(QMainWindow):
         self.lang_from = self.lang_from_entry.text()
         self.lang_to = self.lang_to_entry.text()
         if not self.lang_from or not self.lang_to:
-            messagebox.showerror(title=self.name, message="Both language from and language to have to be filled!")
+            QMessageBox.critical(self, self.app_name, "Both language from and language to have to be filled!")
             return
         source_text = self.input_entry.toPlainText()
         try:
             translation = self.ts.translate_text(query_text=source_text, from_language=self.lang_from, to_language=self.lang_to)
         except Exception as e:
-            messagebox.showerror(title=self.name + f": {type(e).__name__}", message=str(e))
+            QMessageBox.critical(self, self.app_name + f": {type(e).__name__}", str(e))
+            return
         self.output_entry.clear()
         self.output_entry.insertPlainText(translation)
         self._save_to_history()
+        try:
+            self.config.LangTo = self.lang_to
+            self.config.LangFrom = self.lang_from
+        except:
+            raise
 
     def _switch_lang(self):
         # clear fields
@@ -209,7 +245,8 @@ class PyTranslate(QMainWindow):
                 parent=parent,
                 #**kwargs
                 )
-        text.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        if self.config.ScrollBarDisabled:
+            text.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         text.setStyleSheet(f"""
         border:none;
         background: transparent;
@@ -245,9 +282,17 @@ class PyTranslate(QMainWindow):
         return btn
 
 if __name__ == "__main__":
+    # determine app app_path
+    match platform_system():
+        case "Linux":
+            app_path = f"{os.getenv('HOME')}/.config/pytranslate"
+        case _:
+            print(f"Platform '{platform_system()}' not supported!")
+            exit(1)
     config = configparser.ConfigParser()
     config.read(f"{os.getenv('HOME')}/.pytranslate.ini")
 
+    """
     try:
         not_on_top = bool(int(config["DEFAULT"]["NotOnTop"]))
     except KeyError:
@@ -258,7 +303,7 @@ if __name__ == "__main__":
     try:
         lang_from = config["DEFAULT"]["LangFrom"]
     except KeyError as e:
-        lang_from = "pl" 
+        pass
     try:
         lang_to = config["DEFAULT"]["LangTo"]
     except KeyError:
@@ -279,6 +324,15 @@ if __name__ == "__main__":
         save_history= bool(int(config["DEFAULT"]["SaveHistory"]))
     except:
         save_history = True
+    """
+    lang_from = None
+    lang_to = None
+    theme = None
+    not_on_top= None
+    save_history = None
+    start_y = None
+    start_x = None
+    start_pos = None
     langs = []
     for arg in sys.argv:
         if arg.startswith("-"):
@@ -307,8 +361,9 @@ if __name__ == "__main__":
             lang_to=lang_to,
             theme=theme,
             always_on_top=not_on_top,
-            start_pos=(start_x, start_y),
+            start_pos=start_pos,
             save_history=save_history,
+            app_path=app_path,
             )
     window.show()
     sys.exit(app.exec_())
