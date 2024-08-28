@@ -16,28 +16,52 @@ from PyQt5.QtCore import Qt
 
 class SettingsController(QWidget):
     fields = [
+            #[
+            #    "Use System Topbar (not recommended)",
+            #    "combobox",
+            #    "UseSystemTopBar",
+            #    ["Yes", "No"]
+            #    ],
             [
-                "Use System Topbar (not recommended)",
+                "LangFrom",
+                "input",
+                "LangFrom",
+            ],
+            [
+                "LangTo",
+                "input",
+                "LangTo",
+            ],
+            [
+                "Disable Scrollbars",
                 "combobox",
-                "UseSystemTopBar",
+                "ScrollBarDisabled",
                 ["Yes", "No"]
-                ],
-            [
-                "LangFrom",
-                "input",
-                "LangFrom",
             ],
             [
-                "LangTo",
-                "input",
-                "LangTo",
-            ],
-            [
-                "Theme",
+                "Appearance",
                 "combobox",
                 "Theme",
-                ["System Default", "black"],
+                ["System"]
             ],
+            [
+                "Save History",
+                "combobox",
+                "SaveHistory",
+                ["Yes", "No"]
+            ],
+            [
+                "Always On Top",
+                "combobox",
+                "AlwaysOnTop",
+                ["Yes", "No"]
+                ]
+            #[
+            #    "Theme",
+            #    "combobox",
+            #    "Theme",
+            #    ["System Default", "black"],
+            #],
         ]
     dragging = False
     def __init__(self, app):
@@ -60,6 +84,8 @@ class SettingsController(QWidget):
 
     def setup_form(self):
         self.form_layout = QVBoxLayout(self.settings_frame)
+        self.app_full_name = QLabel(self.app.short_description , self)
+        self.form_layout.addWidget(self.app_full_name)
         for field in self.fields:
             field_layout = QHBoxLayout()
             field_label = QLabel(field[0], self)
@@ -126,7 +152,6 @@ class SettingsController(QWidget):
         self.app.config.update_config_file()
         # show user that it happened
         self.settings_saved.show()
-        self.app.
 
     def _close(self):
         self.settings_saved.hide()

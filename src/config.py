@@ -11,7 +11,7 @@ class Config:
 AlwaysOnTop=1
 LangFrom=pl
 LangTo=de
-Theme=black
+Theme=System
 StartX=1500
 StartY=100
 SaveHistory=1
@@ -27,7 +27,8 @@ ScrollBarDisabled=1
         #case "Darwin":
         self.c = configparser.ConfigParser()
         self.c.read(self.config_path)
-        if len(self.c) != 1:
+        if not os.path.isfile(self.config_path):
+        #if len(self.c) != 1:
             del self.c
             print(self.config_path)
             print("Didn't detect valid config file, creating default one")
@@ -135,4 +136,12 @@ ScrollBarDisabled=1
         else:
             self._ScrollBarDisabled = "0"
         self.c.set("DEFAULT", "ScrollBarDisabled", self._ScrollBarDisabled)
+
+    @property
+    def Theme(self):
+        return self.c.get("DEFAULT", "Theme")
+    
+    @Theme.setter
+    def Theme(self, value):
+        self.c.set("DEFAULT", "Theme", value)
 

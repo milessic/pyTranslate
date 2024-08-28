@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
         )
 from PyQt5.QtCore import QLine, Qt, QPoint
 
+VERSION = "v0.1"
 
 class PyTranslate(QMainWindow):
     control_pressed = False
@@ -51,6 +52,8 @@ class PyTranslate(QMainWindow):
         self.lang_from = lang_from if lang_from is not None else self.config.LangFrom
         self.lang_to = lang_to if lang_to is not None else self.config.LangTo
         self.app_name = "pyTranslate"
+        self.version = VERSION
+        self.short_description = f"{self.app_name} {self.version} - milessic 2024"
         self.w = 327
         self.h = 100
         self.ws = start_pos[0] if start_pos is not None else self.config.StartX
@@ -67,7 +70,8 @@ class PyTranslate(QMainWindow):
         if always_on_top is not None and always_on_top:
             self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         else:
-            self.setWindowFlags(Qt.FramelessWindowHint)
+            pass
+            #self.setWindowFlags(Qt.FramelessWindowHint)
         self.input_entry.setFocus()
         self.show()
 
@@ -233,9 +237,10 @@ class PyTranslate(QMainWindow):
             return
         try:
             history_file = json.load(open(self.history_file_path, "r"))
+        except FileNotFoundError:
+            history_file = []
         except Exception as e:
-            print(e)
-            QMessageBox.critical(self, "Error", "Could not load history file!")
+            QMessageBox.critical(self, "Error", f"Could not load history file!n{e}")
             history_file = []
         history_file.append([self.lang_from, self.lang_to, self.input_entry.toPlainText(), self.output_entry.toPlainText()])
         json.dump(history_file, open(self.history_file_path, "w"), indent=4)
@@ -294,12 +299,12 @@ if __name__ == "__main__":
 
     """
     try:
-        not_on_top = bool(int(config["DEFAULT"]["NotOnTop"]))
+        always_on_top = bool(int(config["DEFAULT"]["NotOnTop"]))
     except KeyError:
-        not_on_top = False
+        always_on_top = False
     finally:
         if "--not-on-top" in sys.argv:
-            not_on_top = True
+            always_on_top = True
     try:
         lang_from = config["DEFAULT"]["LangFrom"]
     except KeyError as e:
@@ -328,7 +333,7 @@ if __name__ == "__main__":
     lang_from = None
     lang_to = None
     theme = None
-    not_on_top= None
+    always_on_top= None
     save_history = None
     start_y = None
     start_x = None
@@ -338,8 +343,14 @@ if __name__ == "__main__":
         if arg.startswith("-"):
             if arg == "--dont-save-history":
                 save_history = False
-            continue
+                continue
         if arg.endswith(".py"):
+            continue
+        if arg == "--always-on-top":
+            always_on_top = True
+            continue
+        if arg == "--not-on-top":
+            always_on_top = False
             continue
         langs.append(arg)
 
@@ -360,7 +371,7 @@ if __name__ == "__main__":
             lang_from=lang_from,
             lang_to=lang_to,
             theme=theme,
-            always_on_top=not_on_top,
+            always_on_top=always_on_top,
             start_pos=start_pos,
             save_history=save_history,
             app_path=app_path,
