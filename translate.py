@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
         QMessageBox,
         )
 from PyQt5.QtCore import QLine, Qt, QPoint
+from PyQt5 import QtGui
 
 VERSION = "v0.1"
 
@@ -41,9 +42,11 @@ class PyTranslate(QMainWindow):
         super().__init__()
         self.app_path = app_path
         self.history_file_path = f"{self.app_path}/pytranslate.history.json"
+        self.icon_path = os.path.join(os.path.dirname(__file__), "src/logo.svg")
+        self.icon = QtGui.QIcon()
+        self.icon.addPixmap(QtGui.QPixmap(self.icon_path))
         self.config = Config(self.app_path)
-        self.icon_topnav_path = None
-        self.icon= None
+        self.icon_topnav_path = self.icon
         self.save_history = self.config.SaveHistory if save_history is None else save_history
         self.click_x = 0
         self.click_y = 0
@@ -67,10 +70,6 @@ class PyTranslate(QMainWindow):
             self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
         else:
             self.setWindowFlags(Qt.FramelessWindowHint)
-        if always_on_top is not None and always_on_top:
-            self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        else:
-            pass
             #self.setWindowFlags(Qt.FramelessWindowHint)
         self.input_entry.setFocus()
         self.show()
@@ -80,6 +79,7 @@ class PyTranslate(QMainWindow):
         self.main_widget = QWidget(self)
         self.setCentralWidget(self.main_widget)
         self.main_layout = QVBoxLayout(self.main_widget)
+        self.setWindowIcon(self.icon) # FIXME it doens't work :(
         # setup top
         self.top_layout = QHBoxLayout()
         self.lang_from_entry = self.myQLineEdit(self, width=10)
@@ -252,9 +252,9 @@ class PyTranslate(QMainWindow):
                 )
         if self.config.ScrollBarDisabled:
             text.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        text.setStyleSheet(f"""
-        border:none;
-        background: transparent;
+        text.setStyleSheet("""
+            border:none;
+            background: transparent;
         """)
         return text
 
