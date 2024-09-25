@@ -37,8 +37,6 @@ class SettingsController(QWidget):
                 "combobox",
                 "ScrollBarDisabled",
                 ["Yes", "No"]
-<<<<<<< HEAD
-=======
                 ],
             [
                 "Always on Top",
@@ -50,7 +48,6 @@ class SettingsController(QWidget):
                 "LangFrom",
                 "input",
                 "LangFrom",
->>>>>>> ff3f11c (Added always-on-top as setting option, added icon and made some minor)
             ],
             [
                 "Appearance",
@@ -64,12 +61,6 @@ class SettingsController(QWidget):
                 "SaveHistory",
                 ["Yes", "No"]
             ],
-            [
-                "Always On Top",
-                "combobox",
-                "AlwaysOnTop",
-                ["Yes", "No"]
-                ]
             #[
             #    "Theme",
             #    "combobox",
