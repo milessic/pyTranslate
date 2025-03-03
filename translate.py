@@ -302,6 +302,8 @@ if __name__ == "__main__":
     match platform_system():
         case "Linux" | "Darwin" :
             app_path = f"{os.getenv('HOME')}/.config/pytranslate"
+        case "Windows":
+            app_path = f"{os.getenv('APPDATA')}/pytranslate"
         case _:
             print(f"Platform '{platform_system()}' not supported!")
             exit(1)
