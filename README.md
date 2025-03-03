@@ -1,4 +1,6 @@
 # About
+Visit [Webpage](https://milessic.github.io/pyTranslate/) for downloads
+
 pyTranslate is a small project that was created to have simple and small translator window always on top during education.
 
 App usses [UlionTse/translaors](https://github.com/UlionTse/translators) as backend for translation services.
