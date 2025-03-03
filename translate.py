@@ -40,9 +40,20 @@ class PyTranslate(QMainWindow):
                  save_history:bool | None = None,
                  ):
         super().__init__()
+
         self.app_path = app_path
         self.history_file_path = f"{self.app_path}/pytranslate.history.json"
         self.icon_path = os.path.join(os.path.dirname(__file__), "src/logo.svg")
+
+        # setting font
+        font_path = os.path.join(os.path.dirname(__file__), "src/FiraCodeNerdFont-Regular.ttf")
+        font_id = QtGui.QFontDatabase.addApplicationFont(font_path)
+        font_name = QtGui.QFontDatabase.applicationFontFamilies(font_id)[0]
+        self.font = QtGui.QFont(font_name)
+
+        QApplication.setFont(self.font)
+
+
         self.icon = QtGui.QIcon()
         self.icon.addPixmap(QtGui.QPixmap(self.icon_path))
         self.config = Config(self.app_path)
@@ -289,7 +300,7 @@ class PyTranslate(QMainWindow):
 if __name__ == "__main__":
     # determine app app_path
     match platform_system():
-        case "Linux":
+        case "Linux" | "Darwin" :
             app_path = f"{os.getenv('HOME')}/.config/pytranslate"
         case _:
             print(f"Platform '{platform_system()}' not supported!")
