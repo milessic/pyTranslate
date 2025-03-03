@@ -1,0 +1,19 @@
+{
+	"#section-header h1": "pyTranslate",
+	"#download-scroller": "Herunterladen",
+	"#section-header h3": "Kompaktes und angenehmes GUI für Übersetzer!",
+
+	"#section-about h2": "Über pyTranslate",
+	"#section-about p:nth-of-type(1)": "pyTranslate ist eine einfache, ultrakompakte Anwendung, die dir beim Übersetzen von Wörtern und Ausdrücken hilft.",
+
+	"#section-about h3": "Ultrakompakte Oberfläche",
+	"#section-about h3:nth-of-type(2)": "Viele Funktionen",
+	"#section-about div:nth-of-type(2) p": "__html__<ul><li>Die App kann immer im Vordergrund bleiben!</li><li>Sie kann den Suchverlauf speichern</li><li>Vollständig kompatibel mit <a href='https://pypi.org/project/translators/' target='about:blank'>translators</a></li></ul>",
+
+	"#section-download h2": "Jetzt herunterladen",
+	"#section-download p": "Du kannst eine der unten verfügbaren Versionen herunterladen oder GitHub besuchen, um die App selbst zu erstellen.",
+	"footer span": "Erstellt von",
+	"footer a": "Miłosz 'milessic' Jura",
+	"footer #year": ", 2024"
+}
+
